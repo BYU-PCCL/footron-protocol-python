@@ -1,4 +1,3 @@
-import json
 from typing import Dict, Type
 
 import footron_protocol as protocol
