@@ -51,8 +51,8 @@ class MessageType(str, enum.Enum):
 
 
 class BaseMessage(BaseModel):
-    version: int
     type: MessageType
+    version = PROTOCOL_VERSION
 
 
 class AppClientIdentifiableMixin(BaseModel):
