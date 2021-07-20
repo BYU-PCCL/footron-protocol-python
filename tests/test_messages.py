@@ -7,34 +7,6 @@ test_application_message_body = {"number": 5, "object": {"nested": True}}
 test_version = 1
 
 serialized_messages = {
-    "application app": (
-        protocol.ApplicationAppMessage,
-        {
-            "type": protocol.MessageType.APPLICATION_APP,
-            "version": test_version,
-            "client": "test-client",
-            "body": test_application_message_body,
-        },
-    ),
-    "application client": (
-        protocol.ApplicationClientMessage,
-        {
-            "type": protocol.MessageType.APPLICATION_CLIENT,
-            "version": test_version,
-            "app": "test-app",
-            "body": test_application_message_body,
-        },
-    ),
-    "application client request": (
-        protocol.ApplicationClientMessage,
-        {
-            "type": protocol.MessageType.APPLICATION_CLIENT,
-            "version": test_version,
-            "client": "test-client",
-            "body": test_application_message_body,
-            "req": "test-req",
-        },
-    ),
     "heartbeat client": (
         protocol.HeartbeatClientMessage,
         {
@@ -69,6 +41,34 @@ serialized_messages = {
             "client": "test-client",
             "accepted": False,
             "reason": "test reason",
+        },
+    ),
+    "application app": (
+        protocol.ApplicationAppMessage,
+        {
+            "type": protocol.MessageType.APPLICATION_APP,
+            "version": test_version,
+            "client": "test-client",
+            "body": test_application_message_body,
+        },
+    ),
+    "application client": (
+        protocol.ApplicationClientMessage,
+        {
+            "type": protocol.MessageType.APPLICATION_CLIENT,
+            "version": test_version,
+            "app": "test-app",
+            "body": test_application_message_body,
+        },
+    ),
+    "application client request": (
+        protocol.ApplicationClientMessage,
+        {
+            "type": protocol.MessageType.APPLICATION_CLIENT,
+            "version": test_version,
+            "client": "test-client",
+            "body": test_application_message_body,
+            "req": "test-req",
         },
     ),
     "error": (
