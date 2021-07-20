@@ -10,19 +10,19 @@ class AccessError(ProtocolError):
     pass
 
 
-class UnknownMessageType(ProtocolError):
+class UnknownMessageTypeError(ProtocolError):
     """A client or app sent a readable message with an unregistered type"""
 
     pass
 
 
-class InvalidMessageSchema(ProtocolError):
+class InvalidMessageSchemaError(ProtocolError):
     """A client or app sent a message with an incorrect schema"""
 
     pass
 
 
-class UnhandledMessageType(ProtocolError):
+class UnhandledMessageTypeError(ProtocolError):
     """A client or app sent a valid message type that couldn't be handled"""
 
     pass

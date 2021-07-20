@@ -174,7 +174,7 @@ def serialize(data: BaseMessage) -> JsonDict:
 
 def deserialize(data: JsonDict) -> BaseMessage:
     if FIELD_MSG_TYPE not in data:
-        raise InvalidMessageSchema(
+        raise InvalidMessageSchemaError(
             f"Message doesn't contain required field '{FIELD_MSG_TYPE}'"
         )
 
@@ -182,6 +182,8 @@ def deserialize(data: JsonDict) -> BaseMessage:
 
     msg_type = data[FIELD_MSG_TYPE]
     if msg_type not in message_type_map:
-        raise UnknownMessageType(f"Message specified unrecognized type '{msg_type}'")
+        raise UnknownMessageTypeError(
+            f"Message type '{msg_type.value}' is unrecognized"
+        )
 
     return message_type_map[msg_type].create(**data)
