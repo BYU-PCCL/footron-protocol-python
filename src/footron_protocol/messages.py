@@ -3,14 +3,13 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 import enum
-from typing import Type, Optional, Any, Dict, Union, List
+from typing import Type, Optional, Any, Dict, List
 
+from .types import JsonDict, Lock
 from .errors import *
 
 PROTOCOL_VERSION = 1
 FIELD_MSG_TYPE = "type"
-
-JsonDict = Dict[str, Union[Any, Any]]
 
 
 @enum.unique
@@ -116,7 +115,7 @@ class DisplaySettings(BaseModel):
     # - true: closed lock, not evaluating new connections
     # - n (int in [1, infinity)): after k = n active connections, controller will not
     # accept new connections until k < n
-    lock: Union[bool, int]
+    lock: Lock
 
 
 class DisplaySettingsMessage(BaseMessage):
