@@ -1,9 +1,9 @@
-# TODO: Use Pydantic instead of dataclasses here
 from __future__ import annotations
 
-import dataclasses
+from pydantic import BaseModel
+
 import enum
-from typing import Type, Optional, Any, Dict, TypedDict, Union, List
+from typing import Type, Optional, Any, Dict, Union, List
 
 from .errors import *
 
@@ -14,7 +14,7 @@ JsonDict = Dict[str, Union[Any, Any]]
 
 
 @enum.unique
-class MessageType(enum.Enum):
+class MessageType(str, enum.Enum):
 
     #
     # Heartbeat messages
@@ -50,110 +50,88 @@ class MessageType(enum.Enum):
     LIFECYCLE = "lcy"
 
 
-@dataclasses.dataclass
-class BaseMessage:
+class BaseMessage(BaseModel):
     version: int
     type: MessageType
 
-    @classmethod
-    def create(cls, **kwargs) -> BaseMessage:
-        # Force using class defined type
-        if "type" in kwargs:
-            del kwargs["type"]
-        # noinspection PyArgumentList
-        return cls(type=cls.type, version=PROTOCOL_VERSION, **kwargs)
 
+class AppClientIdentifiableMixin(BaseModel):
+    """Fields for messages between an app and a client in either direction
 
-@dataclasses.dataclass
-class ClientBoundMixin:
-    """A message bound for a client connection.
-
-    Note that the app to which messages sent by a client are bound is specified by the client connection request and the
-    associated access response. The client has no other control over which app is the recipient of its messages.
+    Note that the app to which messages sent by a client are bound is specified by
+    the client connection request and the associated access response. The client has
+    no other control over which app is the recipient of its messages.
     """
 
-    client: str
-    app: str
+    client: Optional[str]
+    app: Optional[str]
 
 
-@dataclasses.dataclass
-class HeartbeatMessage(BaseMessage, ClientBoundMixin):
+class BaseHeartbeatMessage(BaseMessage):
     up: bool
+
+
+class HeartbeatAppMessage(BaseHeartbeatMessage, AppClientIdentifiableMixin):
     type = MessageType.HEARTBEAT_APP
 
 
-@dataclasses.dataclass
-class ClientHeartbeatMessage(HeartbeatMessage):
+class HeartbeatClientMessage(BaseHeartbeatMessage):
     clients: List[str]
     type = MessageType.HEARTBEAT_CLIENT
 
 
-@dataclasses.dataclass
-class ConnectMessage(BaseMessage):
-    app: str
-    type = MessageType.CONNECT
+class ConnectMessage(BaseMessage, AppClientIdentifiableMixin):
+    type: MessageType = MessageType.CONNECT
 
 
-@dataclasses.dataclass
-class AccessMessage(BaseMessage):
+class AccessMessage(BaseMessage, AppClientIdentifiableMixin):
     accepted: bool
-    # Note that we don't use ClientBoundMixin here. This is because access can be denied by the router before a
-    # client has a chance to request an app connection--like if a client is using an outdated auth code--making the
-    # 'app' field null. The reverse is not true; e.g., an access message can't be sent to _accept_ a connection without
-    # providing a value for 'app'.
-    client: Optional[str] = None
-    app: Optional[str] = None
     reason: Optional[str] = None
     type = MessageType.ACCESS
 
 
-@dataclasses.dataclass
 class BaseApplicationMessage(BaseMessage):
     body: Any
     #: Request ID
     req: Optional[str] = None
 
 
-@dataclasses.dataclass
-class ApplicationClientMessage(BaseApplicationMessage):
+class ApplicationClientMessage(BaseApplicationMessage, AppClientIdentifiableMixin):
     type = MessageType.APPLICATION_CLIENT
 
 
-@dataclasses.dataclass
-class ApplicationAppMessage(BaseApplicationMessage, ClientBoundMixin):
+class ApplicationAppMessage(BaseApplicationMessage, AppClientIdentifiableMixin):
     type = MessageType.APPLICATION_APP
 
 
-@dataclasses.dataclass
 class ErrorMessage(BaseMessage):
     error: str
     type = MessageType.ERROR
 
 
-class DisplaySettings(TypedDict):
+class DisplaySettings(BaseModel):
     end_time: int
     # Lock states:
     # - false: no lock
     # - true: closed lock, not evaluating new connections
-    # - n (int in [1, infinity)): after k = n active connections, controller will not accept new connections until k < n
+    # - n (int in [1, infinity)): after k = n active connections, controller will not
+    # accept new connections until k < n
     lock: Union[bool, int]
 
 
-@dataclasses.dataclass
 class DisplaySettingsMessage(BaseMessage):
     settings: DisplaySettings
     type = MessageType.DISPLAY_SETTINGS
 
 
-@dataclasses.dataclass
-class LifecycleMessage(BaseMessage):
+class LifecycleMessage(BaseMessage, AppClientIdentifiableMixin):
     paused: bool
     type = MessageType.LIFECYCLE
 
 
 message_type_map: Dict[MessageType, Type[BaseMessage]] = {
-    MessageType.HEARTBEAT_APP: HeartbeatMessage,
-    MessageType.HEARTBEAT_CLIENT: ClientHeartbeatMessage,
+    MessageType.HEARTBEAT_APP: HeartbeatAppMessage,
+    MessageType.HEARTBEAT_CLIENT: HeartbeatClientMessage,
     MessageType.CONNECT: ConnectMessage,
     MessageType.ACCESS: AccessMessage,
     MessageType.APPLICATION_CLIENT: ApplicationClientMessage,
@@ -165,11 +143,7 @@ message_type_map: Dict[MessageType, Type[BaseMessage]] = {
 
 
 def serialize(data: BaseMessage) -> JsonDict:
-    # TODO: If we end up needing to profile this code, we might want to use .__dict__() here instead:
-    #  https://stackoverflow.com/questions/52229521/why-is-dataclasses-asdictobj-10x-slower-than-obj-dict
-
-    # This is a very hacky way (likely with better alternatives) to just get the 'type' field as its primitive type
-    return {**dataclasses.asdict(data), "type": data.type.value}
+    return data.dict()
 
 
 def deserialize(data: JsonDict) -> BaseMessage:
@@ -178,12 +152,13 @@ def deserialize(data: JsonDict) -> BaseMessage:
             f"Message doesn't contain required field '{FIELD_MSG_TYPE}'"
         )
 
-    data[FIELD_MSG_TYPE] = MessageType(data[FIELD_MSG_TYPE])
+    if not isinstance(data[FIELD_MSG_TYPE], MessageType):
+        data[FIELD_MSG_TYPE] = MessageType(data[FIELD_MSG_TYPE])
 
-    msg_type = data[FIELD_MSG_TYPE]
+    msg_type: MessageType = data[FIELD_MSG_TYPE]
     if msg_type not in message_type_map:
         raise UnknownMessageTypeError(
             f"Message type '{msg_type.value}' is unrecognized"
         )
 
-    return message_type_map[msg_type].create(**data)
+    return message_type_map[msg_type](**data)
