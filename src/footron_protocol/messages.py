@@ -142,7 +142,7 @@ message_type_map: Dict[MessageType, Type[BaseMessage]] = {
 
 
 def serialize(data: BaseMessage) -> JsonDict:
-    return data.dict()
+    return data.dict(exclude_none=True)
 
 
 def deserialize(data: JsonDict) -> BaseMessage:
