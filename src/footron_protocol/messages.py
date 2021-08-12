@@ -109,13 +109,13 @@ class ErrorMessage(BaseMessage):
 
 
 class DisplaySettings(BaseModel):
-    end_time: int
+    end_time: Optional[int]
     # Lock states:
     # - false: no lock
     # - true: closed lock, not evaluating new connections
     # - n (int in [1, infinity)): after k = n active connections, controller will not
     # accept new connections until k < n
-    lock: Lock
+    lock: Optional[Lock]
 
 
 class DisplaySettingsMessage(BaseMessage):
